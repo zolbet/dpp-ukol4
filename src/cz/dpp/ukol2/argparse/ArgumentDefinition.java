@@ -264,6 +264,14 @@ class ArgumentDefinition {
      * @return help snippet
      */
     public String getHelp() {
+    	return getHelp("");
+    }
+    
+    /**
+     * Generate and return help text snippet, listing option names and allowed values
+     * @return help snippet
+     */
+    public String getHelp(String prefix) {
         StringBuilder sb = new StringBuilder();
         // find allowed values, if appropriate
         String allowedValues = "";
@@ -274,18 +282,18 @@ class ArgumentDefinition {
         // list all short names
         for (String shortName : shortNames) {
             if (needsValue()) {
-                sb.append(String.format("\t-%s %s\n", shortName, allowedValues));
+                sb.append(String.format(prefix + "\t-%s %s\n", shortName, allowedValues));
             } else {
-                sb.append(String.format("\t-%s\n", shortName));
+                sb.append(String.format(prefix + "\t-%s\n", shortName));
             }
         }
 
         // list all long names
         for (String longName : longNames) {
             if (needsValue()) {
-                sb.append(String.format("\t--%s=%s\n", longName, allowedValues));
+                sb.append(String.format(prefix + "\t--%s=%s\n", longName, allowedValues));
             } else {
-                sb.append(String.format("\t--%s\n", longName));
+                sb.append(String.format(prefix + "\t--%s\n", longName));
             }
         }
 

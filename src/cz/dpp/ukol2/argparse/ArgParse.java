@@ -13,6 +13,7 @@ import java.util.*;
  * Argument parser and annotation processor class
  */
 public class ArgParse {
+	private final Map<String, ArgParse> subcommands = new HashMap<>();
 
     /** Set of all recognized arguments */
     private final Set<ArgumentDefinition> arguments = new HashSet<>();
@@ -38,6 +39,12 @@ public class ArgParse {
             // skip ignored and synthetic fields
             if (field.isAnnotationPresent(Ignore.class)) continue;
             if (field.isSynthetic()) continue;
+            
+        	if (field.isAnnotationPresent(Subcommand.class)) {
+                ArgParse ap = new ArgParse(field.getType());
+                subcommands.put(field.getName(), ap);
+                continue;
+        	}
 
             // check for presence of @PlainArgs field
             if (field.isAnnotationPresent(PlainArgs.class)) {
@@ -116,9 +123,18 @@ public class ArgParse {
      * @return string containing the help text, suitable for printing along with usage information
      */
     public String getHelp() {
+        return getHelp("");
+    }
+    
+    public String getHelp(String prefix) {
         StringBuilder sb = new StringBuilder();
+
+		for (Map.Entry<String, ArgParse> entry : subcommands.entrySet()) {		    
+		    sb.append(String.format("\t%s\n %s", entry.getKey(), entry.getValue().getHelp(prefix + "\t")));
+		}        
+        
         for (ArgumentDefinition argument : arguments) {
-            sb.append(argument.getHelp());
+            sb.append(argument.getHelp(prefix));
         }
         return sb.toString();
     }
@@ -208,6 +224,25 @@ public class ArgParse {
                 definition.applyArgument(argObject, shortName, shortValue);
                 appliedArguments.add(definition);
 
+            } else if (subcommands.containsKey(argument)) {
+                Field[] fields = argObject.getClass().getFields();
+                
+                try {
+					Field field = argObject.getClass().getField(argument);
+					
+					ArgParse subcommand = subcommands.get(argument);
+					
+					Object subcommandObject = field.getType().newInstance();
+					
+					field.set(argObject, subcommandObject);			                
+					
+					subcommand.parseArgs(args, subcommandObject, idx + 1);
+					
+				} catch (Exception e) {
+					e.printStackTrace();
+				} 
+                
+                break;            	
             } else {
                 /**** plain argument ****/
                 plainArgs.add(argument);
